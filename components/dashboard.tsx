@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Container } from "@/components/ui";
 
 const DASHBOARD_ROUTES = [
@@ -18,34 +18,31 @@ const DASHBOARD_ROUTES = [
 function NavItem({
   href,
   label,
-  pending,
+  active,
+  onNavigate,
   onClick,
 }: {
   href: string;
   label: string;
-  pending?: boolean;
+  active: boolean;
+  onNavigate?: (href: string) => void;
   onClick?: () => void;
 }) {
-  const pathname = usePathname();
-  const active = pathname === href;
-
   return (
     <Link
       href={href}
       prefetch
+      onMouseEnter={() => onNavigate?.(href)}
+      onFocus={() => onNavigate?.(href)}
       onClick={onClick}
       className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
         active
           ? "bg-white text-zinc-950 shadow-[0_10px_30px_rgba(0,0,0,0.14)]"
-          : pending
-            ? "bg-white/10 text-white"
-            : "text-zinc-300 hover:bg-white/10 hover:text-white"
+          : "text-zinc-300 hover:bg-white/10 hover:text-white"
       }`}
     >
       <span
-        className={`h-2 w-2 rounded-full transition ${
-          active ? "bg-[var(--brand)]" : pending ? "bg-zinc-200" : "bg-zinc-500 group-hover:bg-zinc-300"
-        }`}
+        className={`h-2 w-2 rounded-full transition ${active ? "bg-[var(--brand)]" : "bg-zinc-500 group-hover:bg-zinc-300"}`}
       />
       {label}
     </Link>
@@ -62,8 +59,6 @@ export function DashboardShell({
   subtitle?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -80,17 +75,30 @@ export function DashboardShell({
   );
 
   useEffect(() => {
-    setPendingHref(null);
+    setOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    for (const route of DASHBOARD_ROUTES) router.prefetch(route);
-  }, [router]);
+    const warmRoutes = () => {
+      for (const route of DASHBOARD_ROUTES) {
+        if (route !== pathname) router.prefetch(route);
+      }
+    };
 
-  function onNavigate(href: string) {
-    setOpen(false);
-    setPendingHref(href);
-    startTransition(() => router.prefetch(href));
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const idleWindow = window as Window & {
+        requestIdleCallback: (cb: IdleRequestCallback, options?: IdleRequestOptions) => number;
+        cancelIdleCallback: (handle: number) => void;
+      };
+      const id = idleWindow.requestIdleCallback(warmRoutes, { timeout: 1200 });
+      return () => idleWindow.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(warmRoutes, 120);
+    return () => clearTimeout(timer);
+  }, [router, pathname]);
+
+  function onWarmRoute(href: string) {
+    if (href !== pathname) router.prefetch(href);
   }
 
   return (
@@ -136,8 +144,9 @@ export function DashboardShell({
                     key={item.href}
                     href={item.href}
                     label={item.label}
-                    pending={isPending && pendingHref === item.href}
-                    onClick={() => onNavigate(item.href)}
+                    active={pathname === item.href}
+                    onNavigate={onWarmRoute}
+                    onClick={() => setOpen(false)}
                   />
                 ))}
               </nav>
