@@ -5,13 +5,13 @@ import { requireBarberContext, requireSession } from "@/lib/apiAuth";
 import { isPlanActive } from "@/lib/plans";
 
 const CreateBody = z.object({
-  name: z.string().min(2),
-  category: z.string().min(2).optional(),
-  imageUrl: z.string().url().optional().or(z.literal("")),
-  duration: z.number().int().min(10).max(300),
-  prepMinutes: z.number().int().min(0).max(30).optional(),
-  price: z.number().int().min(0),
-  sortOrder: z.number().int().optional(),
+  name: z.string().trim().min(2),
+  category: z.string().trim().min(2).optional().or(z.literal("")),
+  imageUrl: z.string().trim().url().optional().or(z.literal("")),
+  duration: z.coerce.number().int().min(10).max(300),
+  prepMinutes: z.coerce.number().int().min(0).max(30).optional(),
+  price: z.coerce.number().int().min(0),
+  sortOrder: z.coerce.number().int().optional(),
 });
 
 export async function GET(req: Request) {
@@ -58,14 +58,19 @@ export async function POST(req: Request) {
   if (!ctx) return NextResponse.json({ error: "Plano expirado ou acesso nao autorizado." }, { status: 423 });
 
   const parsed = CreateBody.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Dados invalidos" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Dados invalidos", fields: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
 
   const service = await prisma.service.create({
     data: {
       barberId: ctx.barber.id,
       name: parsed.data.name,
-      category: parsed.data.category || null,
-      imageUrl: parsed.data.imageUrl || null,
+      category: parsed.data.category ? parsed.data.category : null,
+      imageUrl: parsed.data.imageUrl ? parsed.data.imageUrl : null,
       duration: parsed.data.duration,
       prepMinutes: parsed.data.prepMinutes ?? 0,
       price: parsed.data.price,

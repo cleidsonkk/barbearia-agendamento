@@ -4,14 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { requireBarberContext } from "@/lib/apiAuth";
 
 const PatchBody = z.object({
-  name: z.string().min(2).optional(),
-  category: z.string().min(2).optional().nullable(),
-  imageUrl: z.string().url().optional().nullable(),
-  duration: z.number().int().min(10).max(300).optional(),
-  prepMinutes: z.number().int().min(0).max(30).optional(),
-  price: z.number().int().min(0).optional(),
+  name: z.string().trim().min(2).optional(),
+  category: z.string().trim().min(2).optional().nullable().or(z.literal("")),
+  imageUrl: z.string().trim().url().optional().nullable().or(z.literal("")),
+  duration: z.coerce.number().int().min(10).max(300).optional(),
+  prepMinutes: z.coerce.number().int().min(0).max(30).optional(),
+  price: z.coerce.number().int().min(0).optional(),
   active: z.boolean().optional(),
-  sortOrder: z.number().int().optional(),
+  sortOrder: z.coerce.number().int().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -19,14 +19,23 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!ctx) return NextResponse.json({ error: "Plano expirado ou acesso nao autorizado." }, { status: 423 });
 
   const parsed = PatchBody.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Dados invalidos" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Dados invalidos", fields: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
 
   const service = await prisma.service.findUnique({ where: { id: params.id } });
   if (!service || service.barberId !== ctx.barber.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const updated = await prisma.service.update({
     where: { id: params.id },
-    data: parsed.data,
+    data: {
+      ...parsed.data,
+      category: parsed.data.category === "" ? null : parsed.data.category,
+      imageUrl: parsed.data.imageUrl === "" ? null : parsed.data.imageUrl,
+    },
   });
 
   return NextResponse.json({ ok: true, service: updated });

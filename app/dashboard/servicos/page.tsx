@@ -60,10 +60,18 @@ export default function ServicosPage() {
       setMsg("Informe um valor valido. Exemplo: 35,00");
       return;
     }
+    const normalizedCategory = category.trim();
     const res = await fetch("/api/services", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, category, imageUrl, duration, prepMinutes, price }),
+      body: JSON.stringify({
+        name,
+        category: normalizedCategory || undefined,
+        imageUrl,
+        duration,
+        prepMinutes,
+        price,
+      }),
     });
     const data = await res.json();
     if (!res.ok) return setMsg(data.error ?? "Erro ao salvar.");
