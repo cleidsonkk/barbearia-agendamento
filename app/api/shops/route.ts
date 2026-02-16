@@ -7,6 +7,7 @@ export async function GET() {
     orderBy: { shopName: "asc" },
     select: {
       id: true,
+      publicSlug: true,
       shopName: true,
       phone: true,
       address: true,
