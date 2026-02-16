@@ -7,7 +7,7 @@ const PatchBody = z.object({
   name: z.string().trim().min(2).optional(),
   category: z.string().trim().min(2).optional().nullable().or(z.literal("")),
   imageUrl: z.string().trim().url().optional().nullable().or(z.literal("")),
-  duration: z.coerce.number().int().min(10).max(300).optional(),
+  duration: z.coerce.number().int().min(1).max(300).optional(),
   prepMinutes: z.coerce.number().int().min(0).max(30).optional(),
   price: z.coerce.number().int().min(0).optional(),
   active: z.boolean().optional(),

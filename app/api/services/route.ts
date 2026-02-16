@@ -8,7 +8,7 @@ const CreateBody = z.object({
   name: z.string().trim().min(2),
   category: z.string().trim().min(2).optional().or(z.literal("")),
   imageUrl: z.string().trim().url().optional().or(z.literal("")),
-  duration: z.coerce.number().int().min(10).max(300),
+  duration: z.coerce.number().int().min(1).max(300),
   prepMinutes: z.coerce.number().int().min(0).max(30).optional(),
   price: z.coerce.number().int().min(0),
   sortOrder: z.coerce.number().int().optional(),
