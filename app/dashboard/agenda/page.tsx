@@ -133,13 +133,25 @@ export default function AgendaPage() {
   }
 
   async function sendReminder(id: string) {
+    const popup = window.open("", "_blank", "noopener,noreferrer");
     setSendingReminderId(id);
     setMsg("");
     try {
       const res = await fetch(`/api/dashboard/bookings/${id}/reminder`, { method: "POST" });
       const data = await res.json();
-      if (!res.ok) return setMsg(data.error ?? "Nao foi possivel montar lembrete.");
-      if (data.waLink) window.open(data.waLink, "_blank", "noopener,noreferrer");
+      if (!res.ok) {
+        if (popup && !popup.closed) popup.close();
+        return setMsg(data.error ?? "Nao foi possivel montar lembrete.");
+      }
+      if (data.waLink) {
+        if (popup && !popup.closed) {
+          popup.location.href = data.waLink;
+        } else {
+          window.location.href = data.waLink;
+        }
+      } else if (popup && !popup.closed) {
+        popup.close();
+      }
       setMsg("Lembrete preparado no WhatsApp.");
       await load();
     } finally {
