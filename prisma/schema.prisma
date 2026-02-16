@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+
+  barber   BarberProfile?
+  customer CustomerProfile?
+}
+
+enum Role {
+  BARBER
+  CUSTOMER
+}
+
+enum PlanType {
+  TRIAL
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model BarberProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+  publicSlug String? @unique
+
+  shopName  String
+  phone     String?
+  address   String?
+  instagram String?
+  bio       String?
+  cancelHours Int @default(2)
+  planType PlanType @default(TRIAL)
+  planPrice Int @default(0)
+  planStartsAt DateTime @default(now())
+  planExpiresAt DateTime?
+
+  schedule ScheduleRule?
+  services Service[]
+  blocks   TimeBlock[]
+  closures ShopClosure[]
+  bookings Booking[]
+}
+
+model CustomerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  name      String
+  phone     String
+  preferredBarberId String?
+  noShowCount Int @default(0)
+  blockedUntil DateTime?
+  createdAt DateTime @default(now())
+
+  bookings Booking[]
+}
+
+model Service {
+  id       String        @id @default(cuid())
+  barberId String
+  barber   BarberProfile @relation(fields: [barberId], references: [id])
+
+  name      String
+  category  String?
+  imageUrl  String?
+  duration  Int     // minutos (40, 60, 20, 120...)
+  prepMinutes Int   @default(0)
+  price     Int     // centavos (ex: 3500 = R$35,00)
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+  bookings  Booking[]
+}
+
+model ScheduleRule {
+  id       String        @id @default(cuid())
+  barberId String        @unique
+  barber   BarberProfile @relation(fields: [barberId], references: [id])
+
+  workDays    String // "1,2,3,4,5,6" (seg=1 ... dom=7)
+  startTime   String // "08:00"
+  endTime     String // "20:00"
+  slotMinutes Int    @default(20)
+  bufferMinutes Int  @default(0)
+}
+
+model TimeBlock {
+  id       String        @id @default(cuid())
+  barberId String
+  barber   BarberProfile @relation(fields: [barberId], references: [id])
+
+  date      DateTime // 00:00 do dia
+  startTime String   // "12:00"
+  endTime   String   // "13:00"
+  reason    String?
+}
+
+model ShopClosure {
+  id       String        @id @default(cuid())
+  barberId String
+  barber   BarberProfile @relation(fields: [barberId], references: [id])
+
+  startAt   DateTime
+  endAt     DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([barberId, startAt, endAt])
+}
+
+model Booking {
+  id String @id @default(cuid())
+
+  barberId String
+  barber   BarberProfile @relation(fields: [barberId], references: [id])
+
+  customerId String
+  customer   CustomerProfile @relation(fields: [customerId], references: [id])
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  date      DateTime // 00:00
+  startTime String   // "14:20"
+  endTime   String   // "15:00"
+
+  notes     String?
+  status    BookingStatus @default(CONFIRMED)
+  customerConfirmedAt DateTime?
+  reminderSentAt DateTime?
+  noShowMarkedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([barberId, date])
+  @@unique([barberId, date, startTime])
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELED
+  NO_SHOW
+}

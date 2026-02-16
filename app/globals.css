@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: #f4f1eb;
+  --surface: #fdfbf8;
+  --ink: #151515;
+  --muted: #5d5a56;
+  --line: #d8d1c6;
+  --brand: #b68c45;
+  --brand-strong: #8f6a2f;
+}
+
+body {
+  @apply text-zinc-900 antialiased;
+  background:
+    radial-gradient(1200px 600px at 95% -10%, rgba(182, 140, 69, 0.2), transparent 60%),
+    radial-gradient(800px 400px at -10% 90%, rgba(28, 28, 28, 0.07), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+}
+
+a { @apply text-zinc-900; }
+
+.font-heading { font-family: var(--font-sora), "Segoe UI", sans-serif; }
+.font-body { font-family: var(--font-manrope), "Segoe UI", sans-serif; }
+
+.hero-panel {
+  background: linear-gradient(135deg, #111111 0%, #22201d 55%, #2c2923 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background: linear-gradient(180deg, rgba(253, 251, 248, 0.92), rgba(253, 251, 248, 0.8));
+  border: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  animation: fade-up 560ms ease-out both;
+}
+
+.reveal-delay-1 { animation-delay: 90ms; }
+.reveal-delay-2 { animation-delay: 180ms; }
+.reveal-delay-3 { animation-delay: 270ms; }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton {
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, rgba(228, 223, 214, 0.9) 25%, rgba(246, 243, 238, 0.95) 50%, rgba(228, 223, 214, 0.9) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+.home-atmosphere {
+  background:
+    linear-gradient(rgba(243, 237, 228, 0.8), rgba(236, 229, 216, 0.82)),
+    url("/media/hero.jpg"),
+    radial-gradient(900px 420px at 82% 18%, rgba(182, 140, 69, 0.35), transparent 60%),
+    radial-gradient(700px 380px at 10% 62%, rgba(17, 17, 17, 0.2), transparent 60%),
+    repeating-linear-gradient(
+      -35deg,
+      rgba(255, 255, 255, 0.14) 0px,
+      rgba(255, 255, 255, 0.14) 2px,
+      transparent 2px,
+      transparent 14px
+    ),
+    linear-gradient(180deg, #f2ebde 0%, #e9decd 100%);
+  background-size: auto, cover, auto, auto, auto, auto;
+  background-position: center, center, center, center, center, center;
+  background-attachment: scroll, fixed, scroll, scroll, scroll, scroll;
+}
+
+.page-atmosphere {
+  background:
+    linear-gradient(rgba(243, 237, 228, 0.84), rgba(236, 229, 216, 0.86)),
+    url("/media/hero.jpg"),
+    radial-gradient(900px 420px at 82% 18%, rgba(182, 140, 69, 0.28), transparent 60%),
+    radial-gradient(700px 380px at 10% 62%, rgba(17, 17, 17, 0.16), transparent 60%),
+    repeating-linear-gradient(
+      -35deg,
+      rgba(255, 255, 255, 0.1) 0px,
+      rgba(255, 255, 255, 0.1) 2px,
+      transparent 2px,
+      transparent 14px
+    ),
+    linear-gradient(180deg, #f2ebde 0%, #e9decd 100%);
+  background-size: auto, cover, auto, auto, auto, auto;
+  background-position: center, center, center, center, center, center;
+  background-attachment: scroll, fixed, scroll, scroll, scroll, scroll;
+}
+
+@media (max-width: 768px) {
+  .home-atmosphere,
+  .page-atmosphere {
+    background:
+      linear-gradient(rgba(243, 237, 228, 0.84), rgba(236, 229, 216, 0.88)),
+      url("/media/hero.jpg"),
+      linear-gradient(180deg, #f2ebde 0%, #e9decd 100%);
+    background-attachment: scroll, scroll, scroll;
+    background-size: cover, cover, cover;
+    background-position: center, center, center;
+  }
+}

@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# next build/cache
+.next/
+out/
+
+# env/secrets
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# test artifacts
+qa-artifacts/
+
+# uploads local fallback
+public/uploads/
+
