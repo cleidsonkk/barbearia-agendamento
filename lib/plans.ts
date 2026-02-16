@@ -2,6 +2,17 @@ import { PlanType } from "@prisma/client";
 
 export const MASTER_APPROVAL_PASSWORD = process.env.MASTER_APPROVAL_PASSWORD ?? "Cleidson@10";
 
+function normalizeMasterPassword(value: string) {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 export const PLAN_CATALOG: Record<
   PlanType,
   { label: string; price: number; days: number; description: string }
@@ -33,7 +44,7 @@ export const PLAN_CATALOG: Record<
 };
 
 export function isMasterPasswordValid(input: string) {
-  return input === MASTER_APPROVAL_PASSWORD;
+  return normalizeMasterPassword(input) === normalizeMasterPassword(MASTER_APPROVAL_PASSWORD);
 }
 
 export function resolvePlan(planType: PlanType) {
@@ -52,4 +63,3 @@ export function isPlanActive(expiresAt?: Date | null, now = new Date()) {
   if (!expiresAt) return false;
   return expiresAt.getTime() >= now.getTime();
 }
-
