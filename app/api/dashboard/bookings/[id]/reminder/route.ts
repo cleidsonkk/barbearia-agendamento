@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireBarberContext } from "@/lib/apiAuth";
 import { prisma } from "@/lib/prisma";
 import { toBrDate } from "@/lib/datetime";
+import { sendUserPushNotification } from "@/lib/webpush";
 
 function wa(phone: string, msg: string) {
   let digits = phone.replace(/\D/g, "");
@@ -16,7 +17,7 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
   const booking = await prisma.booking.findFirst({
     where: { id: params.id, barberId: ctx.barber.id, status: "CONFIRMED" },
     include: {
-      customer: { select: { name: true, phone: true } },
+      customer: { select: { name: true, phone: true, userId: true } },
       service: { select: { name: true } },
       barber: { select: { shopName: true } },
     },
@@ -34,6 +35,12 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
   await prisma.booking.update({
     where: { id: booking.id },
     data: { reminderSentAt: new Date() },
+  });
+
+  await sendUserPushNotification(booking.customer.userId, {
+    title: "Lembrete de agendamento",
+    body: `${booking.barber.shopName}: ${booking.service.name} em ${toBrDate(booking.date)} as ${booking.startTime}.`,
+    url: "/me",
   });
 
   return NextResponse.json({ ok: true, waLink });

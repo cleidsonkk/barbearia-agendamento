@@ -186,7 +186,7 @@ export default function AgendaPage() {
       } else if (popup && !popup.closed) {
         popup.close();
       }
-      setMsg("Lembrete preparado no WhatsApp.");
+      setMsg("Lembrete enviado: push imediato para o cliente e WhatsApp aberto para confirmacao.");
       await load();
     } finally {
       setSendingReminderId(null);
@@ -242,7 +242,7 @@ export default function AgendaPage() {
     try {
       if (typeof window === "undefined") return;
       if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        setMsg("Este dispositivo nao suporta notificacoes push.");
+        setMsg("Este dispositivo nao suporta push no navegador atual. No iPhone, adicione o site na tela inicial.");
         return;
       }
       if (Notification.permission === "denied") {

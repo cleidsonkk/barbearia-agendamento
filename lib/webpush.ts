@@ -26,14 +26,14 @@ export function canUseWebPush() {
   return ensureConfigured();
 }
 
-export async function sendBarberPushNotification(
-  barberUserId: string,
+export async function sendUserPushNotification(
+  userId: string,
   payload: { title: string; body: string; url?: string },
 ) {
   if (!ensureConfigured()) return;
 
   const subs = await prisma.pushSubscription.findMany({
-    where: { userId: barberUserId },
+    where: { userId },
   });
   if (subs.length === 0) return;
 
@@ -60,4 +60,11 @@ export async function sendBarberPushNotification(
       }
     }
   }
+}
+
+export async function sendBarberPushNotification(
+  barberUserId: string,
+  payload: { title: string; body: string; url?: string },
+) {
+  return sendUserPushNotification(barberUserId, payload);
 }
