@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { addMinutes, format, isBefore, parse } from "date-fns";
-import { dateAtBrMidnight, sameBrDate } from "@/lib/datetime";
+import { brTodayISO, dateAtBrMidnight } from "@/lib/datetime";
 
 function timeOnDate(date: Date, hhmm: string) {
   const [h, m] = hhmm.split(":").map(Number);
@@ -64,6 +64,13 @@ export async function getAvailableSlots(dateISO: string, serviceIds: string | st
   ]);
 
   const now = new Date();
+  const nowBrHHMM = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(now);
+  const isTodayBr = dateISO === brTodayISO(now);
   const slots: string[] = [];
 
   for (
@@ -74,9 +81,8 @@ export async function getAvailableSlots(dateISO: string, serviceIds: string | st
     const start = cursor;
     const end = addMinutes(cursor, effectiveDuration);
 
-    if (sameBrDate(date, now) && isBefore(start, now)) continue;
-
     const startHHMM = format(start, "HH:mm");
+    if (isTodayBr && startHHMM < nowBrHHMM) continue;
 
     const overlapBooking = bookings.some((b) => {
       const bs = parse(b.startTime, "HH:mm", date);
