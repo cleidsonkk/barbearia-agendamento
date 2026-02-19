@@ -14,6 +14,7 @@ const Body = z.object({
 export async function POST(req: Request) {
   const session = await requireSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "BARBER") return NextResponse.json({ error: "Somente barbeiro." }, { status: 403 });
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Dados invalidos." }, { status: 400 });

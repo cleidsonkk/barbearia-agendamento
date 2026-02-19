@@ -30,9 +30,6 @@ export default function MePage() {
   const [reDate, setReDate] = useState<Record<string, string>>({});
   const [reTime, setReTime] = useState<Record<string, string>>({});
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [supportsNotifications, setSupportsNotifications] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(false);
-  const [subscribingPush, setSubscribingPush] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -44,78 +41,7 @@ export default function MePage() {
 
   useEffect(() => {
     load();
-    setSupportsNotifications(typeof window !== "undefined" && "Notification" in window);
-    async function checkPush() {
-      if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-      const registration = await navigator.serviceWorker.getRegistration("/sw.js");
-      if (!registration) return;
-      const sub = await registration.pushManager.getSubscription();
-      setPushEnabled(!!sub);
-    }
-    void checkPush();
   }, []);
-
-  function base64UrlToUint8Array(base64String: string) {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-    const raw = atob(base64);
-    const output = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
-    return output;
-  }
-
-  async function enablePushNotifications() {
-    setSubscribingPush(true);
-    setMsg("");
-    try {
-      if (typeof window === "undefined") return;
-      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        setMsg("Este dispositivo nao suporta push. No iPhone, adicione o site na tela inicial.");
-        return;
-      }
-      if (Notification.permission === "denied") {
-        setMsg("Notificacoes bloqueadas. Permita nas configuracoes do navegador.");
-        return;
-      }
-      if (Notification.permission === "default") {
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          setMsg("Permita notificacoes para receber lembretes imediatos.");
-          return;
-        }
-      }
-
-      const keyRes = await fetch("/api/push/public-key", { cache: "no-store" });
-      const keyData = await keyRes.json();
-      if (!keyRes.ok || !keyData?.enabled || !keyData?.publicKey) {
-        setMsg("Push nao configurado no servidor.");
-        return;
-      }
-
-      const registration = await navigator.serviceWorker.register("/sw.js");
-      const existing = await registration.pushManager.getSubscription();
-      const subscription =
-        existing
-        ?? (await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: base64UrlToUint8Array(String(keyData.publicKey)),
-        }));
-
-      const saveRes = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(subscription),
-      });
-      if (!saveRes.ok) {
-        setMsg("Nao foi possivel ativar o push neste dispositivo.");
-        return;
-      }
-      setPushEnabled(true);
-      setMsg("Notificacoes push ativadas para seus lembretes.");
-    } finally {
-      setSubscribingPush(false);
-    }
-  }
 
   async function runAction(id: string, payload: Record<string, string>) {
     setMsg("");
@@ -146,22 +72,6 @@ export default function MePage() {
             <Card>
               <CardBody>
                 <div className="text-sm text-zinc-700">{msg}</div>
-              </CardBody>
-            </Card>
-          ) : null}
-
-          {supportsNotifications ? (
-            <Card>
-              <CardBody>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-zinc-900">Lembrete imediato no celular/computador</div>
-                    <div className="text-xs text-zinc-600">Ative push para receber aviso assim que o barbeiro enviar o lembrete.</div>
-                  </div>
-                  <Button className="w-full sm:w-auto" variant="ghost" onClick={enablePushNotifications} disabled={subscribingPush}>
-                    {pushEnabled ? "Push ativo neste dispositivo" : (subscribingPush ? "Ativando..." : "Ativar notificacoes push")}
-                  </Button>
-                </div>
               </CardBody>
             </Card>
           ) : null}
