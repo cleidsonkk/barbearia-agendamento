@@ -477,29 +477,29 @@ export default function AgendaPage() {
           <CardBody>
             <div className="mb-2 font-heading text-base font-bold text-zinc-950">Tabela de horarios disponiveis</div>
             <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-white/80">
-              <table className="min-w-full text-sm">
+              <table className="min-w-full text-xs sm:text-sm">
                 <thead className="bg-zinc-100/80 text-zinc-700">
                   <tr>
-                    <th className="px-3 py-2 text-left">Data</th>
-                    <th className="px-3 py-2 text-left">Servico</th>
-                    <th className="px-3 py-2 text-left">Horarios livres</th>
+                    <th className="px-2 py-2 text-left sm:px-3">Data</th>
+                    <th className="px-2 py-2 text-left sm:px-3">Servico</th>
+                    <th className="px-2 py-2 text-left sm:px-3">Horarios livres</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="border-t border-[var(--line)]">
-                    <td className="px-3 py-2">{brDateFromISO(date)}</td>
-                    <td className="px-3 py-2">{services.find((s) => s.id === serviceId)?.name ?? "-"}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2 align-top sm:px-3">{brDateFromISO(date)}</td>
+                    <td className="px-2 py-2 align-top sm:px-3">{services.find((s) => s.id === serviceId)?.name ?? "-"}</td>
+                    <td className="px-2 py-2 sm:px-3">
                       {loadingSlots ? (
                         "Carregando..."
                       ) : slots.length ? (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex min-w-[260px] flex-wrap gap-1.5 sm:min-w-0 sm:gap-2">
                           {slots.map((slot) => (
                             <button
                               key={`quick-slot-${slot}`}
                               type="button"
                               onClick={() => selectFreeSlot(slot)}
-                              className={`rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+                              className={`rounded-lg border px-2 py-1 text-[11px] font-semibold transition sm:text-xs ${
                                 startTime === slot
                                   ? "border-zinc-900 bg-zinc-900 text-white"
                                   : "border-[var(--line)] bg-white hover:bg-zinc-50"
@@ -525,34 +525,34 @@ export default function AgendaPage() {
           <CardBody>
             <div className="mb-2 font-heading text-base font-bold text-zinc-950">Tabela de agendamentos do dia</div>
             <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-white/80">
-              <table className="min-w-full text-sm">
+              <table className="min-w-[560px] text-xs sm:min-w-full sm:text-sm">
                 <thead className="bg-zinc-100/80 text-zinc-700">
                   <tr>
-                    <th className="px-3 py-2 text-left">Horario</th>
-                    <th className="px-3 py-2 text-left">Cliente</th>
-                    <th className="px-3 py-2 text-left">Servico</th>
-                    <th className="px-3 py-2 text-left">Valor</th>
-                    <th className="px-3 py-2 text-left">Acao</th>
+                    <th className="px-2 py-2 text-left sm:px-3">Horario</th>
+                    <th className="px-2 py-2 text-left sm:px-3">Cliente</th>
+                    <th className="px-2 py-2 text-left sm:px-3">Servico</th>
+                    <th className="px-2 py-2 text-left sm:px-3">Valor</th>
+                    <th className="px-2 py-2 text-left sm:px-3">Acao</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
                     <tr className="border-t border-[var(--line)]">
-                      <td className="px-3 py-2 text-zinc-600" colSpan={5}>Sem agendamentos para {brDateFromISO(date)}.</td>
+                      <td className="px-2 py-2 text-zinc-600 sm:px-3" colSpan={5}>Sem agendamentos para {brDateFromISO(date)}.</td>
                     </tr>
                   ) : (
                     items.map((b) => (
                       <tr key={`table-${b.id}`} className="border-t border-[var(--line)]">
-                        <td className="px-3 py-2">{b.startTime} - {b.endTime}</td>
-                        <td className="px-3 py-2">{b.customer.name}</td>
-                        <td className="px-3 py-2">{b.service.name}</td>
-                        <td className="px-3 py-2">{money(b.service.price)}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2 sm:px-3">{b.startTime} - {b.endTime}</td>
+                        <td className="px-2 py-2 sm:px-3">{b.customer.name}</td>
+                        <td className="px-2 py-2 sm:px-3">{b.service.name}</td>
+                        <td className="px-2 py-2 sm:px-3">{money(b.service.price)}</td>
+                        <td className="px-2 py-2 sm:px-3">
                           <button
                             type="button"
                             onClick={() => sendReminder(b.id)}
                             disabled={sendingReminderId === b.id}
-                            className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
+                            className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-[11px] font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50 sm:text-xs"
                             title="Clique para enviar lembrete no WhatsApp"
                           >
                             {sendingReminderId === b.id ? "Enviando..." : "Agendado (enviar lembrete)"}
