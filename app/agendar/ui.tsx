@@ -129,6 +129,25 @@ export default function AgendarUI({
     if (selectedServiceIds.length > 0 && shopId) void loadCalendar();
   }, [selectedServiceIds.length, shopId, loadCalendar]);
 
+  useEffect(() => {
+    if (!shopId || selectedServiceIds.length === 0) return;
+    const timer = window.setInterval(() => {
+      void loadSlots();
+      void loadCalendar();
+    }, 20000);
+    return () => window.clearInterval(timer);
+  }, [shopId, selectedServiceIds.length, loadSlots, loadCalendar]);
+
+  useEffect(() => {
+    function onFocus() {
+      if (!shopId || selectedServiceIds.length === 0) return;
+      void loadSlots();
+      void loadCalendar();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [shopId, selectedServiceIds.length, loadSlots, loadCalendar]);
+
   async function onShopChange(nextShopId: string) {
     setShopId(nextShopId);
     fetch("/api/me/preferred-shop", {

@@ -55,8 +55,10 @@ export default function AgendaPage() {
   const [saving, setSaving] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
+  const [supportsNotifications, setSupportsNotifications] = useState(false);
   const loadRequestId = useRef(0);
   const slotsRequestId = useRef(0);
+  const knownBookingIds = useRef<Set<string>>(new Set());
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -70,7 +72,27 @@ export default function AgendaPage() {
       const res = await fetch(`/api/dashboard/bookings?date=${date}`);
       const data = await res.json();
       if (requestId !== loadRequestId.current) return;
-      setItems(data.bookings ?? []);
+      const nextItems = Array.isArray(data.bookings) ? data.bookings : [];
+      const nextIds = new Set<string>(nextItems.map((b: Item) => b.id));
+      const isFirstLoad = knownBookingIds.current.size === 0;
+
+      if (!isFirstLoad) {
+        const newOnes = nextItems.filter((b: Item) => !knownBookingIds.current.has(b.id));
+        if (newOnes.length > 0) {
+          const first = newOnes[0];
+          setMsg(`Novo agendamento: ${first.customer.name} as ${first.startTime}.`);
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification("Novo agendamento recebido", {
+                body: `${first.customer.name} - ${first.startTime} (${brDateFromISO(date)})`,
+              });
+            } catch {}
+          }
+        }
+      }
+
+      knownBookingIds.current = nextIds;
+      setItems(nextItems);
     } finally {
       if (requestId === loadRequestId.current) setLoading(false);
     }
@@ -211,6 +233,27 @@ export default function AgendaPage() {
   }, [serviceId, date, barberId, loadSlots]);
 
   useEffect(() => {
+    setSupportsNotifications(typeof window !== "undefined" && "Notification" in window);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void load();
+      if (serviceId && barberId) void loadSlots(serviceId, date);
+    }, 20000);
+    return () => window.clearInterval(timer);
+  }, [load, loadSlots, serviceId, barberId, date]);
+
+  useEffect(() => {
+    function onFocus() {
+      void load();
+      if (serviceId && barberId) void loadSlots(serviceId, date);
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [load, loadSlots, serviceId, barberId, date]);
+
+  useEffect(() => {
     if (customerMode !== "existing" && selectedCustomer) {
       setCustomerName(selectedCustomer.name);
       setCustomerPhone(selectedCustomer.phone);
@@ -228,6 +271,24 @@ export default function AgendaPage() {
                   <Label>Data</Label>
                   <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                 </div>
+                {supportsNotifications ? (
+                  <Button
+                    className="w-full"
+                    variant="ghost"
+                    onClick={async () => {
+                      if (Notification.permission === "default") {
+                        await Notification.requestPermission();
+                      }
+                      if (Notification.permission === "granted") {
+                        setMsg("Notificacoes ativadas neste dispositivo.");
+                      } else {
+                        setMsg("Permita notificacoes no navegador para avisos de novos agendamentos.");
+                      }
+                    }}
+                  >
+                    Ativar notificacoes
+                  </Button>
+                ) : null}
                 <Button className="w-full" onClick={load}>
                   Atualizar agenda
                 </Button>

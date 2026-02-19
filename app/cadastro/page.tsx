@@ -20,6 +20,7 @@ export default function CadastroPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -51,26 +52,44 @@ export default function CadastroPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setErr("");
+    setSubmitting(true);
 
-    if (!selectedBarberId) {
-      setErr("Selecione a barbearia para vincular sua conta.");
-      return;
+    try {
+      if (!selectedBarberId) {
+        setErr("Selecione a barbearia para vincular sua conta.");
+        return;
+      }
+
+      const res = await fetch("/api/customer/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email.trim().toLowerCase(),
+          password: password.trim(),
+          preferredBarberId: selectedBarberId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) return setErr(data.error ?? "Erro ao cadastrar.");
+
+      const callbackUrl = shopSlug ? `/b/${shopSlug}/reservar` : "/agendar";
+      const login = await signIn("credentials", {
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+        redirect: false,
+        callbackUrl,
+      });
+      if (!login || login.error) return setErr("Cadastro realizado, mas nao foi possivel entrar. Tente novamente no login.");
+      router.replace(callbackUrl);
+      router.refresh();
+    } finally {
+      setSubmitting(false);
     }
-
-    const res = await fetch("/api/customer/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone, email, password, preferredBarberId: selectedBarberId }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) return setErr(data.error ?? "Erro ao cadastrar.");
-
-    const callbackUrl = shopSlug ? `/b/${shopSlug}/reservar` : "/agendar";
-    const login = await signIn("credentials", { email, password, redirect: false, callbackUrl });
-    if (!login || login.error) return setErr("Cadastro realizado, mas nao foi possivel entrar. Tente novamente no login.");
-    router.push(callbackUrl);
   }
 
   return (
@@ -131,8 +150,12 @@ export default function CadastroPage() {
 
                 {err && <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{err}</div>}
 
-                <Button className="w-full" type="submit" disabled={!selectedBarberId || loadingShops}>
-                  Cadastrar e continuar
+                <Button
+                  className="w-full"
+                  type="submit"
+                  disabled={submitting || !selectedBarberId || loadingShops || !name.trim() || !phone.trim() || !email.trim() || !password.trim()}
+                >
+                  {submitting ? "Criando conta..." : "Cadastrar e continuar"}
                 </Button>
               </form>
 

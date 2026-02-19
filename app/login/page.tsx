@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -21,25 +22,30 @@ export default function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setErr("");
+    setSubmitting(true);
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-      callbackUrl: callbackUrl ?? "/",
-    });
-    if (!res || res.error) return setErr("Email ou senha invalidos.");
+    try {
+      const res = await signIn("credentials", {
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+        redirect: false,
+        callbackUrl: callbackUrl ?? "/",
+      });
+      if (!res || res.error) return setErr("Email ou senha invalidos.");
 
-    if (callbackUrl) {
-      router.push(callbackUrl);
-      return;
+      const sessionRes = await fetch("/api/auth/session", { cache: "no-store" });
+      const session = await sessionRes.json();
+      const role = session?.user?.role;
+      const safeTarget = role === "BARBER"
+        ? (callbackUrl && callbackUrl.startsWith("/dashboard") ? callbackUrl : "/dashboard")
+        : (callbackUrl && !callbackUrl.startsWith("/dashboard") ? callbackUrl : "/agendar");
+      router.replace(safeTarget);
+      router.refresh();
+    } finally {
+      setSubmitting(false);
     }
-
-    const sessionRes = await fetch("/api/auth/session");
-    const session = await sessionRes.json();
-    const role = session?.user?.role;
-    router.push(role === "BARBER" ? "/dashboard" : "/agendar");
   }
 
   return (
@@ -64,7 +70,9 @@ export default function LoginPage() {
 
                 {err && <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{err}</div>}
 
-                <Button className="w-full" type="submit">Entrar</Button>
+                <Button className="w-full" type="submit" disabled={submitting || !email.trim() || !password.trim()}>
+                  {submitting ? "Entrando..." : "Entrar"}
+                </Button>
               </form>
 
               <div className="mt-5 text-sm text-zinc-600">
