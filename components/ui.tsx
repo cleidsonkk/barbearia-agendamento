@@ -69,7 +69,11 @@ export function TopNav({ right }: { right?: React.ReactNode }) {
       <Container>
         <div className="flex h-[4.5rem] items-center justify-between gap-3 sm:h-20">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/brand/logo.svg" alt="Logo" width={128} height={36} className="h-9 w-auto" priority unoptimized />
+            <Image src="/brand/logo.svg" alt="Logo" width={42} height={42} className="h-10 w-10 rounded-xl object-cover" priority unoptimized />
+            <div className="leading-tight">
+              <div className="font-heading text-base font-extrabold tracking-tight text-zinc-950 sm:text-xl">Barbearia</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 sm:text-xs">Agendamentos online</div>
+            </div>
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-2">{right}</div>
         </div>

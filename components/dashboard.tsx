@@ -59,6 +59,7 @@ export function DashboardShell({
   subtitle?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [shopName, setShopName] = useState<string>("");
   const pathname = usePathname();
   const router = useRouter();
 
@@ -97,6 +98,23 @@ export function DashboardShell({
     return () => clearTimeout(timer);
   }, [router, pathname]);
 
+  useEffect(() => {
+    let alive = true;
+    async function loadProfile() {
+      try {
+        const res = await fetch("/api/me/profile", { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (!alive) return;
+        const name = String(data?.user?.barber?.shopName ?? "").trim();
+        setShopName(name);
+      } catch {}
+    }
+    void loadProfile();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   function onWarmRoute(href: string) {
     if (href !== pathname) router.prefetch(href);
   }
@@ -114,6 +132,12 @@ export function DashboardShell({
                 Menu
               </button>
               <Image src="/brand/logo.svg" className="h-9 w-auto" alt="Logo" width={128} height={36} priority unoptimized />
+              {shopName ? (
+                <div className="hidden sm:block">
+                  <div className="font-heading text-base font-extrabold tracking-tight text-zinc-900">{shopName}</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Painel profissional</div>
+                </div>
+              ) : null}
             </div>
             <Link href="/agendar">
               <Button variant="ghost">Ver site</Button>

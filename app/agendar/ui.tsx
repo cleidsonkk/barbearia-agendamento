@@ -226,17 +226,17 @@ export default function AgendarUI({
   return (
     <main className="page-atmosphere min-h-screen">
       <Container>
-        <div className="mx-auto max-w-6xl py-8 sm:py-10">
+        <div className="mx-auto max-w-7xl py-6 sm:py-10">
           <div className="mb-6 rounded-3xl border border-[var(--line)] bg-white/70 p-5 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="font-heading text-3xl font-extrabold tracking-tight text-zinc-950">Reserva premium</h1>
-                <p className="mt-1 text-sm text-zinc-600">Escolha a barbearia, o servico e confirme em segundos.</p>
+                <h1 className="font-heading text-2xl font-extrabold tracking-tight text-zinc-950 sm:text-3xl">Reserva premium</h1>
+                <p className="mt-1 text-sm text-zinc-600">Escolha barbearia, servicos e confirme em poucos cliques.</p>
               </div>
               {selectedShop ? (
-                <div className="rounded-2xl bg-zinc-950 px-4 py-3 text-white shadow-[0_14px_35px_rgba(0,0,0,0.24)]">
+                <div className="w-full rounded-2xl bg-zinc-950 px-4 py-3 text-white shadow-[0_14px_35px_rgba(0,0,0,0.24)] sm:w-auto">
                   <div className="text-xs uppercase tracking-[0.18em] text-zinc-300">Barbearia</div>
-                  <div className="mt-1 text-sm font-bold">{selectedShop.shopName}</div>
+                  <div className="mt-1 truncate text-base font-bold sm:max-w-[280px]">{selectedShop.shopName}</div>
                 </div>
               ) : null}
             </div>
@@ -246,8 +246,9 @@ export default function AgendarUI({
             <div className="space-y-5 lg:col-span-8">
               <Card>
                 <CardBody>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="space-y-2">
+                  <div className="mb-4 font-heading text-base font-bold text-zinc-900">1. Defina barbearia e servicos</div>
+                  <div className="grid gap-4 xl:grid-cols-12">
+                    <div className="space-y-2 xl:col-span-4">
                       <Label>Barbearia</Label>
                       <Select value={shopId} onChange={(e) => onShopChange(e.target.value)}>
                         {shops.map((s) => (
@@ -255,9 +256,9 @@ export default function AgendarUI({
                         ))}
                       </Select>
                     </div>
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2 xl:col-span-8">
                       <Label>Servicos (selecione um ou mais)</Label>
-                      <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                         {services.map((s) => {
                           const active = selectedServiceIds.includes(s.id);
                           return (
@@ -271,7 +272,7 @@ export default function AgendarUI({
                                   : "border-[var(--line)] bg-white/75 text-zinc-700 hover:bg-white"
                               }`}
                             >
-                              <div className="text-sm font-semibold">{s.name}</div>
+                              <div className="line-clamp-2 text-sm font-semibold">{s.name}</div>
                               <div className={`text-xs ${active ? "text-zinc-200" : "text-zinc-500"}`}>
                                 {money(s.price)} | {s.duration} min
                               </div>
@@ -280,7 +281,7 @@ export default function AgendarUI({
                         })}
                       </div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 xl:col-span-4">
                       <Label>Data</Label>
                       <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                     </div>
@@ -288,13 +289,13 @@ export default function AgendarUI({
                   {loadingServices ? <div className="mt-3 text-xs text-zinc-500">Atualizando servicos da barbearia...</div> : null}
 
                   {loadingCalendar ? (
-                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                      {Array.from({ length: 5 }).map((_, i) => (
+                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+                      {Array.from({ length: 10 }).map((_, i) => (
                         <Skeleton key={i} className="h-20" />
                       ))}
                     </div>
                   ) : days.length > 0 ? (
-                    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                    <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-5">
                       {days.map((d) => (
                         <button
                           key={d.date}
@@ -317,6 +318,7 @@ export default function AgendarUI({
 
               <Card>
                 <CardBody>
+                  <div className="mb-4 font-heading text-base font-bold text-zinc-900">2. Escolha o horario</div>
                   <div className="mb-3 flex items-center justify-between">
                     <Label>Horarios disponiveis</Label>
                     <button
@@ -328,7 +330,7 @@ export default function AgendarUI({
                     </button>
                   </div>
                   {loadingSlots ? (
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                       {Array.from({ length: 10 }).map((_, i) => (
                         <Skeleton key={i} className="h-11" />
                       ))}
@@ -336,7 +338,7 @@ export default function AgendarUI({
                   ) : slots.length === 0 ? (
                     <div className="rounded-2xl border border-[var(--line)] bg-white/75 p-4 text-sm text-zinc-600">Sem horarios livres para esta data.</div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                       {slots.map((h) => (
                         <button
                           key={h}
@@ -357,16 +359,17 @@ export default function AgendarUI({
 
               <Card>
                 <CardBody>
+                  <div className="mb-4 font-heading text-base font-bold text-zinc-900">3. Confirmacao</div>
                   <div className="space-y-2">
                     <Label>Observacao (opcional)</Label>
                     <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex: tipo de corte, referencia..." />
                   </div>
                   {msg && <div className="mt-3 rounded-xl border border-[var(--line)] bg-white/80 p-3 text-sm text-zinc-800">{msg}</div>}
                   <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                    <Button className="w-full sm:w-auto" onClick={book} disabled={!startTime || booking || selectedServiceIds.length === 0}>
+                    <Button className="w-full sm:min-w-[220px]" onClick={book} disabled={!startTime || booking || selectedServiceIds.length === 0}>
                       {booking ? "Confirmando..." : "Confirmar agendamento"}
                     </Button>
-                    <Link className="w-full sm:w-auto" href="/me"><Button className="w-full sm:w-auto" variant="ghost">Meus agendamentos</Button></Link>
+                    <Link className="w-full sm:w-auto" href="/me"><Button className="w-full sm:min-w-[190px]" variant="ghost">Meus agendamentos</Button></Link>
                   </div>
                 </CardBody>
               </Card>
@@ -382,7 +385,7 @@ export default function AgendarUI({
                     </div>
                   ) : null}
                   <div className="mt-4 space-y-3 text-sm">
-                    <div className="flex items-center justify-between"><span className="text-zinc-600">Barbearia</span><span className="font-semibold text-zinc-900">{selectedShop?.shopName ?? "-"}</span></div>
+                    <div className="flex items-center justify-between gap-2"><span className="text-zinc-600">Barbearia</span><span className="truncate font-semibold text-zinc-900">{selectedShop?.shopName ?? "-"}</span></div>
                     <div>
                       <div className="text-zinc-600">Servicos</div>
                       <div className="mt-1 space-y-1">
