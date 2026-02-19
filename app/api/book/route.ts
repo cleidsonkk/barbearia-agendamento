@@ -6,6 +6,7 @@ import { addMinutes, format, parse } from "date-fns";
 import { dateAtBrMidnight, toBrDate } from "@/lib/datetime";
 import { getAvailableSlots } from "@/lib/availability";
 import { isPlanActive } from "@/lib/plans";
+import { sendBarberPushNotification } from "@/lib/webpush";
 
 const Body = z.object({
   barberId: z.string(),
@@ -132,6 +133,12 @@ export async function POST(req: Request) {
       `Horario: ${first.startTime} ate ${last.endTime}\n` +
       `Contato: ${customerPhone}`;
     const waLink = barberPhone ? `https://wa.me/55${barberPhone}?text=${encodeURIComponent(msg)}` : null;
+
+    await sendBarberPushNotification(barber.userId, {
+      title: "Novo agendamento",
+      body: `${customer.name} reservou ${servicesList} em ${brDate} (${first.startTime}).`,
+      url: "/dashboard/agenda",
+    });
 
     return NextResponse.json({
       ok: true,

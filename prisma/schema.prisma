@@ -16,6 +16,7 @@ model User {
 
   barber   BarberProfile?
   customer CustomerProfile?
+  pushSubscriptions PushSubscription[]
 }
 
 enum Role {
@@ -152,4 +153,18 @@ enum BookingStatus {
   CONFIRMED
   CANCELED
   NO_SHOW
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

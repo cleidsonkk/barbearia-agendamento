@@ -34,6 +34,15 @@ function normalizePhone(phone: string) {
   return digits;
 }
 
+function base64UrlToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
 export default function AgendaPage() {
   const [date, setDate] = useState(() => brTodayISO());
   const [items, setItems] = useState<Item[]>([]);
@@ -56,6 +65,8 @@ export default function AgendaPage() {
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
   const [supportsNotifications, setSupportsNotifications] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [subscribingPush, setSubscribingPush] = useState(false);
   const loadRequestId = useRef(0);
   const slotsRequestId = useRef(0);
   const knownBookingIds = useRef<Set<string>>(new Set());
@@ -219,6 +230,59 @@ export default function AgendaPage() {
     }
   }
 
+  async function enablePushNotifications() {
+    setSubscribingPush(true);
+    try {
+      if (typeof window === "undefined") return;
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+        setMsg("Este dispositivo nao suporta notificacoes push.");
+        return;
+      }
+      if (Notification.permission === "denied") {
+        setMsg("Notificacoes bloqueadas no navegador. Permita nas configuracoes do site.");
+        return;
+      }
+      if (Notification.permission === "default") {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          setMsg("Permita notificacoes para receber novos agendamentos.");
+          return;
+        }
+      }
+
+      const keyRes = await fetch("/api/push/public-key", { cache: "no-store" });
+      const keyData = await keyRes.json();
+      if (!keyRes.ok || !keyData?.enabled || !keyData?.publicKey) {
+        setMsg("Push ainda nao configurado no servidor.");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      const existing = await registration.pushManager.getSubscription();
+      const subscription =
+        existing
+        ?? (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: base64UrlToUint8Array(String(keyData.publicKey)),
+        }));
+
+      const saveRes = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subscription),
+      });
+      if (!saveRes.ok) {
+        setMsg("Nao foi possivel ativar o push neste dispositivo.");
+        return;
+      }
+
+      setPushEnabled(true);
+      setMsg("Push ativado. Novos agendamentos vao notificar neste dispositivo.");
+    } finally {
+      setSubscribingPush(false);
+    }
+  }
+
   useEffect(() => {
     void loadSetup();
   }, [loadSetup]);
@@ -234,6 +298,17 @@ export default function AgendaPage() {
 
   useEffect(() => {
     setSupportsNotifications(typeof window !== "undefined" && "Notification" in window);
+  }, []);
+
+  useEffect(() => {
+    async function checkPush() {
+      if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+      const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+      if (!registration) return;
+      const sub = await registration.pushManager.getSubscription();
+      setPushEnabled(!!sub);
+    }
+    void checkPush();
   }, []);
 
   useEffect(() => {
@@ -275,18 +350,10 @@ export default function AgendaPage() {
                   <Button
                     className="w-full"
                     variant="ghost"
-                    onClick={async () => {
-                      if (Notification.permission === "default") {
-                        await Notification.requestPermission();
-                      }
-                      if (Notification.permission === "granted") {
-                        setMsg("Notificacoes ativadas neste dispositivo.");
-                      } else {
-                        setMsg("Permita notificacoes no navegador para avisos de novos agendamentos.");
-                      }
-                    }}
+                    onClick={enablePushNotifications}
+                    disabled={subscribingPush}
                   >
-                    Ativar notificacoes
+                    {pushEnabled ? "Push ativo neste dispositivo" : (subscribingPush ? "Ativando push..." : "Ativar notificacoes push")}
                   </Button>
                 ) : null}
                 <Button className="w-full" onClick={load}>
