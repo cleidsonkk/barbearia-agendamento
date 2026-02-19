@@ -48,12 +48,14 @@ model BarberProfile {
   planPrice Int @default(0)
   planStartsAt DateTime @default(now())
   planExpiresAt DateTime?
+  metricsResetAt DateTime?
 
   schedule ScheduleRule?
   services Service[]
   blocks   TimeBlock[]
   closures ShopClosure[]
   bookings Booking[]
+  metricReports BarberMetricReport[]
 }
 
 model CustomerProfile {
@@ -168,4 +170,26 @@ model PushSubscription {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+enum MetricsReportType {
+  MANUAL
+  WEEKLY_AUTO
+}
+
+model BarberMetricReport {
+  id String @id @default(cuid())
+  barberId String
+  barber BarberProfile @relation(fields: [barberId], references: [id])
+  type MetricsReportType @default(MANUAL)
+  windowStart DateTime
+  windowEnd DateTime
+  totalBookings Int @default(0)
+  totalRevenue Int @default(0)
+  avgTicket Int @default(0)
+  topService String?
+  occupancy Int @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([barberId, createdAt])
 }

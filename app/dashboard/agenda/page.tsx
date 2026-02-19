@@ -464,6 +464,68 @@ export default function AgendaPage() {
         </div>
       </div>
 
+      <div className="mt-4 grid gap-4 xl:grid-cols-2">
+        <Card>
+          <CardBody>
+            <div className="mb-2 font-heading text-base font-bold text-zinc-950">Tabela de horarios disponiveis</div>
+            <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-white/80">
+              <table className="min-w-full text-sm">
+                <thead className="bg-zinc-100/80 text-zinc-700">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Data</th>
+                    <th className="px-3 py-2 text-left">Servico</th>
+                    <th className="px-3 py-2 text-left">Horarios livres</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-t border-[var(--line)]">
+                    <td className="px-3 py-2">{brDateFromISO(date)}</td>
+                    <td className="px-3 py-2">{services.find((s) => s.id === serviceId)?.name ?? "-"}</td>
+                    <td className="px-3 py-2">
+                      {loadingSlots ? "Carregando..." : slots.length ? slots.join(", ") : "Sem horarios livres"}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody>
+            <div className="mb-2 font-heading text-base font-bold text-zinc-950">Tabela de agendamentos do dia</div>
+            <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-white/80">
+              <table className="min-w-full text-sm">
+                <thead className="bg-zinc-100/80 text-zinc-700">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Horario</th>
+                    <th className="px-3 py-2 text-left">Cliente</th>
+                    <th className="px-3 py-2 text-left">Servico</th>
+                    <th className="px-3 py-2 text-left">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length === 0 ? (
+                    <tr className="border-t border-[var(--line)]">
+                      <td className="px-3 py-2 text-zinc-600" colSpan={4}>Sem agendamentos para {brDateFromISO(date)}.</td>
+                    </tr>
+                  ) : (
+                    items.map((b) => (
+                      <tr key={`table-${b.id}`} className="border-t border-[var(--line)]">
+                        <td className="px-3 py-2">{b.startTime} - {b.endTime}</td>
+                        <td className="px-3 py-2">{b.customer.name}</td>
+                        <td className="px-3 py-2">{b.service.name}</td>
+                        <td className="px-3 py-2">{money(b.service.price)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+
       <div className="mt-4 grid gap-3">
         {msg ? (
           <Card>

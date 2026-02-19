@@ -1,10 +1,12 @@
 import Image from "next/image";
-import { startOfMonth } from "date-fns";
+import { differenceInCalendarDays, format, startOfMonth } from "date-fns";
 import { requireBarber } from "@/lib/guards";
 import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard";
 import { Card, CardBody } from "@/components/ui";
 import { randomSuffix, toSlugBase } from "@/lib/barber-link";
+import { buildBarberMetrics } from "@/lib/metrics";
+import { MetricsResetCard } from "@/components/metrics-reset-card";
 
 function brl(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -23,6 +25,35 @@ export default async function DashboardHome() {
     }
     barber = await prisma.barberProfile.update({ where: { id: barber.id }, data: { publicSlug: slug } });
   }
+  const now = new Date();
+  if (barber) {
+    const resetFrom = barber.metricsResetAt ?? startOfMonth(now);
+    const elapsed = differenceInCalendarDays(now, resetFrom);
+    if (elapsed >= 7) {
+      const m = await buildBarberMetrics(barber.id, resetFrom, now);
+      await prisma.$transaction([
+        prisma.barberMetricReport.create({
+          data: {
+            barberId: barber.id,
+            type: "WEEKLY_AUTO",
+            windowStart: resetFrom,
+            windowEnd: now,
+            totalBookings: m.totalBookings,
+            totalRevenue: m.totalRevenue,
+            avgTicket: m.avgTicket,
+            topService: m.topService === "-" ? null : m.topService,
+            occupancy: m.occupancy,
+          },
+        }),
+        prisma.barberProfile.update({
+          where: { id: barber.id },
+          data: { metricsResetAt: now },
+        }),
+      ]);
+      barber = await prisma.barberProfile.findUnique({ where: { userId: session.user.id as string } });
+    }
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -33,30 +64,17 @@ export default async function DashboardHome() {
       : Promise.resolve(0),
     barber ? prisma.shopClosure.count({ where: { barberId: barber.id } }) : Promise.resolve(0),
   ]);
-  const monthFrom = startOfMonth(new Date());
-  const monthBookings = barber
-    ? await prisma.booking.findMany({
-        where: { barberId: barber.id, date: { gte: monthFrom }, status: "CONFIRMED" },
-        include: { service: true },
+  const metricsFrom = barber?.metricsResetAt ?? startOfMonth(new Date());
+  const metrics = barber
+    ? await buildBarberMetrics(barber.id, metricsFrom, new Date())
+    : { totalRevenue: 0, avgTicket: 0, topService: "-", occupancy: 0, bookings: [], revenueDetails: [], totalBookings: 0 };
+  const reports = barber
+    ? await prisma.barberMetricReport.findMany({
+        where: { barberId: barber.id },
+        orderBy: { createdAt: "desc" },
+        take: 8,
       })
     : [];
-  const totalRevenue = monthBookings.reduce((sum, b) => sum + b.service.price, 0);
-  const avgTicket = monthBookings.length > 0 ? Math.round(totalRevenue / monthBookings.length) : 0;
-  const byService = new Map<string, number>();
-  for (const b of monthBookings) byService.set(b.service.name, (byService.get(b.service.name) ?? 0) + 1);
-  const topService = [...byService.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "-";
-  const revenueByService = new Map<string, { qty: number; revenue: number }>();
-  for (const b of monthBookings) {
-    const current = revenueByService.get(b.service.name) ?? { qty: 0, revenue: 0 };
-    current.qty += 1;
-    current.revenue += b.service.price;
-    revenueByService.set(b.service.name, current);
-  }
-  const revenueDetails = [...revenueByService.entries()]
-    .map(([name, data]) => ({ name, qty: data.qty, revenue: data.revenue }))
-    .sort((a, b) => b.revenue - a.revenue || b.qty - a.qty || a.name.localeCompare(b.name));
-  const daysElapsed = Math.max(1, new Date().getDate());
-  const occupancy = Math.min(100, Math.round((monthBookings.length / (daysElapsed * 8)) * 100));
 
   const showcase = [
     {
@@ -159,19 +177,19 @@ export default async function DashboardHome() {
         <Card>
           <CardBody>
             <div className="text-xs uppercase tracking-[0.16em] text-zinc-500">Receita no mes</div>
-            <div className="mt-2 font-heading text-2xl font-bold">{brl(totalRevenue)}</div>
+            <div className="mt-2 font-heading text-2xl font-bold">{brl(metrics.totalRevenue)}</div>
             <details className="mt-3 rounded-xl border border-[var(--line)] bg-white/80 p-3">
               <summary className="cursor-pointer text-sm font-semibold text-zinc-800">
                 Clique para ver detalhes da receita
               </summary>
               <div className="mt-3 text-xs text-zinc-500">
-                Total de atendimentos no mes: <span className="font-semibold text-zinc-800">{monthBookings.length}</span>
+                Total de atendimentos no periodo: <span className="font-semibold text-zinc-800">{metrics.totalBookings}</span>
               </div>
               <div className="mt-2 space-y-2">
-                {revenueDetails.length === 0 ? (
+                {metrics.revenueDetails.length === 0 ? (
                   <div className="text-sm text-zinc-600">Sem atendimentos no periodo.</div>
                 ) : (
-                  revenueDetails.map((item) => (
+                  metrics.revenueDetails.map((item) => (
                     <div key={item.name} className="flex items-center justify-between rounded-lg border border-[var(--line)] bg-white px-3 py-2">
                       <div>
                         <div className="text-sm font-semibold text-zinc-900">{item.name}</div>
@@ -185,8 +203,34 @@ export default async function DashboardHome() {
             </details>
           </CardBody>
         </Card>
-        <Card><CardBody><div className="text-xs uppercase tracking-[0.16em] text-zinc-500">Ticket medio</div><div className="mt-2 font-heading text-2xl font-bold">{brl(avgTicket)}</div></CardBody></Card>
-        <Card><CardBody><div className="text-xs uppercase tracking-[0.16em] text-zinc-500">Taxa de ocupacao</div><div className="mt-2 font-heading text-2xl font-bold">{occupancy}%</div><div className="text-xs text-zinc-500">Servico mais vendido: {topService}</div></CardBody></Card>
+        <Card><CardBody><div className="text-xs uppercase tracking-[0.16em] text-zinc-500">Ticket medio</div><div className="mt-2 font-heading text-2xl font-bold">{brl(metrics.avgTicket)}</div></CardBody></Card>
+        <Card><CardBody><div className="text-xs uppercase tracking-[0.16em] text-zinc-500">Taxa de ocupacao</div><div className="mt-2 font-heading text-2xl font-bold">{metrics.occupancy}%</div><div className="text-xs text-zinc-500">Servico mais vendido: {metrics.topService}</div></CardBody></Card>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <MetricsResetCard lastResetAt={barber?.metricsResetAt ? format(barber.metricsResetAt, "dd/MM/yyyy HH:mm") : null} />
+        <Card>
+          <CardBody>
+            <div className="text-xs uppercase tracking-[0.16em] text-zinc-500">Historico de relatorios</div>
+            <div className="mt-3 space-y-2">
+              {reports.length === 0 ? (
+                <div className="text-sm text-zinc-600">Nenhum relatorio salvo ainda.</div>
+              ) : (
+                reports.map((r) => (
+                  <div key={r.id} className="rounded-xl border border-[var(--line)] bg-white/80 p-3 text-sm">
+                    <div className="font-semibold text-zinc-900">
+                      {format(r.windowStart, "dd/MM/yyyy")} ate {format(r.windowEnd, "dd/MM/yyyy")}
+                    </div>
+                    <div className="mt-1 text-zinc-600">
+                      Receita: {brl(r.totalRevenue)} | Atendimentos: {r.totalBookings} | Ticket: {brl(r.avgTicket)} | Ocupacao: {r.occupancy}%
+                    </div>
+                    <div className="mt-1 text-xs text-zinc-500">Tipo: {r.type === "WEEKLY_AUTO" ? "Semanal automatico" : "Manual"}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-3">
