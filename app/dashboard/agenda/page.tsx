@@ -70,6 +70,7 @@ export default function AgendaPage() {
   const loadRequestId = useRef(0);
   const slotsRequestId = useRef(0);
   const knownBookingIds = useRef<Set<string>>(new Set());
+  const quickBookingRef = useRef<HTMLDivElement | null>(null);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -190,6 +191,12 @@ export default function AgendaPage() {
     } finally {
       setSendingReminderId(null);
     }
+  }
+
+  function selectFreeSlot(slot: string) {
+    setStartTime(slot);
+    setMsg(`Horario ${slot} selecionado. Complete o cliente e clique em "Criar agendamento".`);
+    quickBookingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function createManualBooking() {
@@ -367,6 +374,7 @@ export default function AgendaPage() {
         <div className="xl:col-span-8">
           <Card>
             <CardBody>
+              <div ref={quickBookingRef} />
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="font-heading text-base font-bold text-zinc-950">Agendar para cliente (barbeiro)</div>
                 <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{brDateFromISO(date)}</div>
@@ -482,7 +490,29 @@ export default function AgendaPage() {
                     <td className="px-3 py-2">{brDateFromISO(date)}</td>
                     <td className="px-3 py-2">{services.find((s) => s.id === serviceId)?.name ?? "-"}</td>
                     <td className="px-3 py-2">
-                      {loadingSlots ? "Carregando..." : slots.length ? slots.join(", ") : "Sem horarios livres"}
+                      {loadingSlots ? (
+                        "Carregando..."
+                      ) : slots.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {slots.map((slot) => (
+                            <button
+                              key={`quick-slot-${slot}`}
+                              type="button"
+                              onClick={() => selectFreeSlot(slot)}
+                              className={`rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+                                startTime === slot
+                                  ? "border-zinc-900 bg-zinc-900 text-white"
+                                  : "border-[var(--line)] bg-white hover:bg-zinc-50"
+                              }`}
+                              title="Clique para preencher o horario no formulario"
+                            >
+                              {slot}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        "Sem horarios livres"
+                      )}
                     </td>
                   </tr>
                 </tbody>
@@ -502,12 +532,13 @@ export default function AgendaPage() {
                     <th className="px-3 py-2 text-left">Cliente</th>
                     <th className="px-3 py-2 text-left">Servico</th>
                     <th className="px-3 py-2 text-left">Valor</th>
+                    <th className="px-3 py-2 text-left">Acao</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
                     <tr className="border-t border-[var(--line)]">
-                      <td className="px-3 py-2 text-zinc-600" colSpan={4}>Sem agendamentos para {brDateFromISO(date)}.</td>
+                      <td className="px-3 py-2 text-zinc-600" colSpan={5}>Sem agendamentos para {brDateFromISO(date)}.</td>
                     </tr>
                   ) : (
                     items.map((b) => (
@@ -516,6 +547,17 @@ export default function AgendaPage() {
                         <td className="px-3 py-2">{b.customer.name}</td>
                         <td className="px-3 py-2">{b.service.name}</td>
                         <td className="px-3 py-2">{money(b.service.price)}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => sendReminder(b.id)}
+                            disabled={sendingReminderId === b.id}
+                            className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
+                            title="Clique para enviar lembrete no WhatsApp"
+                          >
+                            {sendingReminderId === b.id ? "Enviando..." : "Agendado (enviar lembrete)"}
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
