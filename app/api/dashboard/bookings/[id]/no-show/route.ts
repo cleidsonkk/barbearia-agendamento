@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { addDays } from "date-fns";
 import { requireBarberContext } from "@/lib/apiAuth";
 import { prisma } from "@/lib/prisma";
 
@@ -14,7 +13,6 @@ export async function PATCH(_req: Request, { params }: { params: { id: string } 
   if (!booking) return NextResponse.json({ error: "Agendamento nao encontrado." }, { status: 404 });
 
   const noShowCount = (booking.customer.noShowCount ?? 0) + 1;
-  const block = noShowCount >= 2 ? addDays(new Date(), 30) : null;
 
   const [, updatedCustomer] = await prisma.$transaction([
     prisma.booking.update({
@@ -25,7 +23,7 @@ export async function PATCH(_req: Request, { params }: { params: { id: string } 
       where: { id: booking.customerId },
       data: {
         noShowCount,
-        blockedUntil: block,
+        blockedUntil: null,
       },
     }),
   ]);

@@ -37,13 +37,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Este cliente esta vinculado a outra barbearia." }, { status: 403 });
   }
 
-  if (customer.blockedUntil && customer.blockedUntil > new Date()) {
-    return NextResponse.json(
-      { error: `Agendamento bloqueado temporariamente por faltas. Libera em ${toBrDate(customer.blockedUntil)}.` },
-      { status: 423 },
-    );
-  }
-
   const barber = await prisma.barberProfile.findUnique({
     where: { id: parsed.data.barberId },
     include: { schedule: true },

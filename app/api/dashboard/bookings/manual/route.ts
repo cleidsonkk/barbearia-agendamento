@@ -4,7 +4,7 @@ import { addMinutes, format, parse } from "date-fns";
 import bcrypt from "bcryptjs";
 import { requireBarberContext } from "@/lib/apiAuth";
 import { getAvailableSlots } from "@/lib/availability";
-import { dateAtBrMidnight, toBrDate } from "@/lib/datetime";
+import { dateAtBrMidnight } from "@/lib/datetime";
 import { prisma } from "@/lib/prisma";
 
 const Body = z.object({
@@ -118,13 +118,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: customerResult.error }, { status: customerResult.status });
   }
   const customer = customerResult.customer;
-
-  if (customer.blockedUntil && customer.blockedUntil > new Date()) {
-    return NextResponse.json(
-      { error: `Cliente bloqueado temporariamente por faltas. Libera em ${toBrDate(customer.blockedUntil)}.` },
-      { status: 423 },
-    );
-  }
 
   const availability = await getAvailableSlots(parsed.data.date, [service.id], ctx.barber.id);
   if (!availability.slots.includes(parsed.data.startTime)) {
